@@ -26,4 +26,14 @@ public class ClientViewModel: NotifyPropertyChangedBase
             OnPropertyChanged(nameof(Login));
         }
     }
+
+    public string Password
+    {
+        get => Model.Password;
+        set
+        {
+            Model.Password = value;
+            OnPropertyChanged(nameof(Password));
+        }
+    }
 }

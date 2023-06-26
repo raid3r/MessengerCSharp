@@ -21,9 +21,24 @@ public class MainWindowViewModel : NotifyPropertyChangedBase
     public MainWindowViewModel()
     {
         _service = new Service("127.0.0.1", 5000);
-        Me = new Client { Login = "test" }; //TODO
+        Me = new Client { Login = "", Password = "" };
+        
+        // Auth
+        var loginWindow = new LoginWindow(new ClientViewModel(Me));
+        loginWindow.ShowDialog();
+        try
+        {
+            _service.GetMessageCount(Me);
+        } catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message);
+            throw ex;
+        }
+
         NewMessage = new MessageViewModel(new Message { Text = "", From = Me, CreatedAt = DateTime.Now, To = new Client { Login = "" } });
         OnPropertyChanged(nameof(NewMessage));
+
+
         Task.Run(() => {
             while (true)
             {
@@ -58,7 +73,7 @@ public class MainWindowViewModel : NotifyPropertyChangedBase
 
     private void UpdateMessages()
     {
-        _messages.AddRange(_service.GetMessages(Me.Login));
+        _messages.AddRange(_service.GetMessages(Me));
         //_messages.Add(new Message
         //{
         //    From = new Client { Login = "test2" },

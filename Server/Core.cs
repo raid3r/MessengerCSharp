@@ -18,6 +18,8 @@ public class Core
 
     }
 
+    private List<Client> _clients = new List<Client>();
+
     private List<Message> _messages = new List<Message>();
 
     private T Deserialize<T>(Data data) where T : class
@@ -25,9 +27,41 @@ public class Core
         return JsonSerializer.Deserialize<T>(data.Content);
     }
 
+    private bool authUser(Client client)
+    {
+        var existClient = _clients.FirstOrDefault(x => x.Login == client.Login);
+        if (existClient == null)
+        {
+            return false;
+        }
+        return client.Password == existClient.Password;
+    }
+
     private Data HandleLoginRequest(Data data)
     {
+        
         var request = Deserialize<LoginRequest>(data);
+
+        var client = _clients.FirstOrDefault(x => x.Login == request.Me.Login);
+        if (client == null)
+        {
+            //New client 
+            _clients.Add(request.Me);
+            return Data.Create(new LoginResponse
+            {
+                Success = true,
+                MessagesCount = 0,
+            });
+        }
+        
+        // Client exists
+        if (!authUser(request.Me)) {
+            return Data.Create(new ErrorResponse
+            {
+                Error = "Invalid password"
+            });
+        }
+        // Valid password
 
         return Data.Create(new LoginResponse
         {
@@ -40,6 +74,14 @@ public class Core
     {
         var request = Deserialize<SendMessageRequest>(data);
 
+        if (!authUser(request.Message.From))
+        {
+            return Data.Create(new ErrorResponse
+            {
+                Error = "Not authorized"
+            });
+        }
+
         _messages.Add(request.Message);
         return Data.Create(new SendMessageResponse { Success = true });
     }
@@ -47,6 +89,14 @@ public class Core
     private Data HandleGetMessagesRequest(Data data)
     {
         var request = Deserialize<GetMessagesRequest>(data);
+
+        if (!authUser(request.Me))
+        {
+            return Data.Create(new ErrorResponse
+            {
+                Error = "Not authorized"
+            });
+        }
 
         var clientMessages = _messages.Where(x => x.To.Login == request.Me.Login).ToList();
         _messages.RemoveAll(x => x.To.Login == request.Me.Login);

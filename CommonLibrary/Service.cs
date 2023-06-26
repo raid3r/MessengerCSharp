@@ -16,7 +16,7 @@ public class Service
 {
     public Service(string host, int port)
     {
-        _ep = new IPEndPoint(IPAddress.Parse(host), 5000);
+        _ep = new IPEndPoint(IPAddress.Parse(host), port);
     }
 
     private IPEndPoint _ep;
@@ -40,40 +40,44 @@ public class Service
             JsonSerializer.Deserialize<T>(response.Content);
     }
 
-
-    public int GetMessageCount(string login)
+    private void IsError(Data rawResponse)
     {
-        var response = ToResponse<LoginResponse>(
-            Send(Data.Create(new LoginRequest
-            {
-                Me = new CommonLibrary.Client
-                {
-                    Login = login
-                }
-            })));
+        if (rawResponse.Type == DataType.ErrorResponse)
+        {
+            throw new Exception(ToResponse<ErrorResponse>(rawResponse).Error);
+        }
+    }
+
+    public int GetMessageCount(Client me)
+    {
+        var rawResponse = Send(Data.Create(new LoginRequest
+        {
+            Me = me
+        }));
+        IsError(rawResponse);
+        var response = ToResponse<LoginResponse>(rawResponse);
         return response.MessagesCount;
     }
 
-    public List<Message> GetMessages(string login)
+    public List<Message> GetMessages(Client me)
     {
-        var response = ToResponse<GetMessagesResponse>(
-            Send(Data.Create(new GetMessagesRequest
-            {
-                Me = new CommonLibrary.Client
-                {
-                    Login = login
-                }
-            })));
+        var rawResponse = Send(Data.Create(new GetMessagesRequest
+        {
+            Me = me
+        }));
+        IsError(rawResponse);
+        var response = ToResponse<GetMessagesResponse>(rawResponse);
         return response.Messages;
     }
 
     public bool SendMessage(Message message)
     {
-        var response = ToResponse<SendMessageResponse>(
-            Send(Data.Create(new SendMessageRequest
-            {
-                Message = message
-            })));
+        var rawResponse = Send(Data.Create(new SendMessageRequest
+        {
+            Message = message
+        }));
+        IsError(rawResponse);
+        var response = ToResponse<SendMessageResponse>(rawResponse);
         return response.Success;
     }
 }
